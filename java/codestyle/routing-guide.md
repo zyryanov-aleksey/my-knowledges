@@ -1,20 +1,36 @@
-# Правильное форматирование кода на java
+# Правила написания кода
 
-## Кодировка
+## Основы
+
+### Кодировка
 
 Все исходные файлы должны быть написаны с использованием `UTF-8` кодировки.
 
-## Отступы
+### Отступы
 
 Рекомендуется использование пробелов, а не табуляции.
 
-## Работа в IntelliJ Idea
+### Структура исходного файла
 
-### Автоматическое форматирование в IntelliJ Idea
+- лицензия (при необходимости)
+- объявление пакета
+- импорты
+- класс
+
+### Работа в IntelliJ Idea
+
+#### Автоматическое форматирование в IntelliJ Idea
 
 Общепринятый [.editorconfig](/.editorconfig) для IntelliJ Idea находится в корне базы знаний. 
 Рекомендуется поддерживать его в актуальном виде.
 
-### Автоматическая инспекция кода
+#### Автоматическая инспекция кода
 
 Автоматическая инспекция кода в IntelliJ Idea осуществляется с помощью файла: [code-inspections.xml](/code-inspections.xml)
+
+## Навигация по обязательным правилам написания кода
+
+- Как объявлять лицензию: [license-guide.md](/java/codestyle/source-file-structure/license-guide.md)
+- Как правильно использовать импорты: [imports-structure.md](/java/codestyle/source-file-structure/imports-structure.md)
+- Как правильно организовать Java-файл: [java-file-organisation.md](/java/codestyle/source-file-structure/java-file-organisation.md)
+- Форматирование исходного кода: [source-file-formatting.md](/java/codestyle/source-file-structure/source-file-formatting.md)
