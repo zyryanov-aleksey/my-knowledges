@@ -4,6 +4,7 @@
   <option name="WRAP_WHEN_TYPING_REACHES_RIGHT_MARGIN" value="false" />
   <option name="SOFT_MARGINS" value="100" />
   <JavaCodeStyleSettings version="1">
+    <option name="TEST_NAME_SUFFIX" value="Tests" />
     <option name="ANNOTATION_NEW_LINE_IN_RECORD_COMPONENT" value="true" />
     <option name="ANNOTATION_PARAMETER_WRAP" value="2" />
     <option name="ENUM_FIELD_ANNOTATION_WRAP" value="2" />
@@ -47,7 +48,6 @@
     <option name="BLANK_LINES_BEFORE_CLASS_END" value="1" />
     <option name="WHILE_ON_NEW_LINE" value="true" />
     <option name="SPECIAL_ELSE_IF_TREATMENT" value="false" />
-    <option name="ALIGN_MULTILINE_TERNARY_OPERATION" value="true" />
     <option name="ALIGN_MULTILINE_THROWS_LIST" value="true" />
     <option name="ALIGN_MULTILINE_EXTENDS_LIST" value="true" />
     <option name="ALIGN_MULTILINE_ARRAY_INITIALIZER_EXPRESSION" value="true" />
@@ -64,10 +64,10 @@
     <option name="THROWS_KEYWORD_WRAP" value="1" />
     <option name="METHOD_CALL_CHAIN_WRAP" value="1" />
     <option name="BINARY_OPERATION_WRAP" value="1" />
-    <option name="TERNARY_OPERATION_WRAP" value="1" />
+    <option name="TERNARY_OPERATION_WRAP" value="5" />
     <option name="TERNARY_OPERATION_SIGNS_ON_NEXT_LINE" value="true" />
     <option name="FOR_STATEMENT_WRAP" value="2" />
-    <option name="ARRAY_INITIALIZER_WRAP" value="2" />
+    <option name="ARRAY_INITIALIZER_WRAP" value="1" />
     <option name="ARRAY_INITIALIZER_LBRACE_ON_NEXT_LINE" value="true" />
     <option name="ARRAY_INITIALIZER_RBRACE_ON_NEXT_LINE" value="true" />
     <option name="ASSIGNMENT_WRAP" value="1" />
@@ -75,6 +75,9 @@
     <option name="SWITCH_EXPRESSIONS_WRAP" value="2" />
     <option name="ASSERT_STATEMENT_COLON_ON_NEXT_LINE" value="true" />
     <option name="IF_BRACE_FORCE" value="3" />
+    <option name="DOWHILE_BRACE_FORCE" value="3" />
+    <option name="WHILE_BRACE_FORCE" value="3" />
+    <option name="FOR_BRACE_FORCE" value="3" />
     <option name="PARAMETER_ANNOTATION_WRAP" value="2" />
     <option name="VARIABLE_ANNOTATION_WRAP" value="2" />
     <option name="ENUM_CONSTANTS_WRAP" value="2" />
