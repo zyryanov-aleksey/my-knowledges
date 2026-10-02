@@ -34,3 +34,5 @@
 - Как правильно использовать импорты: [imports-structure.md](/java/codestyle/source-file-structure/imports-structure.md)
 - Как правильно организовать Java-файл: [java-file-organisation.md](/java/codestyle/source-file-structure/java-file-organisation.md)
 - Форматирование исходного кода: [source-file-formatting.md](/java/codestyle/source-file-structure/source-file-formatting.md)
+- Правила объявления классов: [class-declaration.md](source-file-structure/class-declaration.md)
+- Правила именования классов/методов/переменных/etc: [global-naming-rules.md](/java/codestyle/source-file-structure/naming-rules/global-naming-rules.md)
