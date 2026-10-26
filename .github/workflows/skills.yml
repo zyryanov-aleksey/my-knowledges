@@ -12,6 +12,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      archive_name: ${{ steps.package.outputs.archive_name }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,13 +47,26 @@ jobs:
             --validator build/skills-ref-source/skills-ref/.venv/bin/skills-ref
           tools/skill-generator/gradlew -p tools/skill-generator validateSkills --no-daemon
       - name: Package validated set
-        run: tools/skill-generator/gradlew -p tools/skill-generator packageSkills --no-daemon
+        id: package
+        run: |
+          package_args=()
+          if [[ "$GITHUB_REF_TYPE" == tag ]]; then
+            package_args+=("-PskillsTag=$GITHUB_REF_NAME")
+          fi
+          tools/skill-generator/gradlew -p tools/skill-generator packageSkills --no-daemon "${package_args[@]}"
+          shopt -s nullglob
+          archives=(build/distributions/skills-*.zip)
+          if [[ ${#archives[@]} -ne 1 || ! -f "${archives[0]}" || ! -f "${archives[0]}.sha256" ]]; then
+            echo "Expected exactly one skills archive with its checksum" >&2
+            exit 1
+          fi
+          echo "archive_name=${archives[0]##*/}" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
         with:
           name: agent-skills
           path: |
-            build/distributions/skills.zip
-            build/distributions/skills.zip.sha256
+            build/distributions/${{ steps.package.outputs.archive_name }}
+            build/distributions/${{ steps.package.outputs.archive_name }}.sha256
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
@@ -82,4 +97,5 @@ jobs:
       - name: Publish immutable assets
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python tools/skill-generator/scripts/publish_release.py build/distributions/skills.zip
+          ARCHIVE_NAME: ${{ needs.build.outputs.archive_name }}
+        run: python tools/skill-generator/scripts/publish_release.py "build/distributions/$ARCHIVE_NAME"

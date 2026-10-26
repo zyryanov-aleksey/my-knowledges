@@ -11,10 +11,10 @@ class PublishReleaseTest(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
-        self.archive = Path(self.directory.name) / "skills.zip"
+        self.archive = Path(self.directory.name) / "skills-v1.2.3.zip"
         self.archive.write_bytes(b"archive")
-        self.checksum = self.archive.with_name("skills.zip.sha256")
-        self.checksum.write_text(hashlib.sha256(b"archive").hexdigest() + "  skills.zip\n",
+        self.checksum = self.archive.with_name(self.archive.name + ".sha256")
+        self.checksum.write_text(hashlib.sha256(b"archive").hexdigest() + f"  {self.archive.name}\n",
                                  encoding="utf-8")
 
     def run_existing(self, remote):
@@ -36,21 +36,21 @@ class PublishReleaseTest(unittest.TestCase):
         self.assertIn(self.checksum, gh.call_args.args)
 
     def test_identical_assets_are_not_uploaded(self):
-        remote = {"skills.zip": b"archive", "skills.zip.sha256": self.checksum.read_bytes()}
+        remote = {self.archive.name: b"archive", self.checksum.name: self.checksum.read_bytes()}
         metadata_patch, download = self.run_existing(remote)
         with metadata_patch, patch.object(publish_release, "gh", side_effect=download) as gh:
             publish_release.publish("owner/repo", "skills-v1", self.archive)
         self.assertEqual(["download", "download"], [call.args[1] for call in gh.call_args_list])
 
     def test_different_archive_fails_before_upload(self):
-        metadata_patch, download = self.run_existing({"skills.zip": b"different"})
+        metadata_patch, download = self.run_existing({self.archive.name: b"different"})
         with metadata_patch, patch.object(publish_release, "gh", side_effect=download) as gh:
             with self.assertRaisesRegex(ValueError, "different bytes"):
                 publish_release.publish("owner/repo", "skills-v1", self.archive)
         self.assertEqual(["download"], [call.args[1] for call in gh.call_args_list])
 
     def test_different_remote_checksum_fails_before_upload(self):
-        remote = {"skills.zip": b"archive", "skills.zip.sha256": b"different checksum"}
+        remote = {self.archive.name: b"archive", self.checksum.name: b"different checksum"}
         metadata_patch, download = self.run_existing(remote)
         with metadata_patch, patch.object(publish_release, "gh", side_effect=download) as gh:
             with self.assertRaisesRegex(ValueError, "different bytes"):
@@ -58,7 +58,7 @@ class PublishReleaseTest(unittest.TestCase):
         self.assertTrue(all(call.args[1] == "download" for call in gh.call_args_list))
 
     def test_recovers_missing_checksum_without_overwriting_archive(self):
-        metadata_patch, download = self.run_existing({"skills.zip": b"archive"})
+        metadata_patch, download = self.run_existing({self.archive.name: b"archive"})
         with metadata_patch, patch.object(publish_release, "gh", side_effect=download) as gh:
             publish_release.publish("owner/repo", "skills-v1", self.archive)
         self.assertEqual("upload", gh.call_args.args[1])

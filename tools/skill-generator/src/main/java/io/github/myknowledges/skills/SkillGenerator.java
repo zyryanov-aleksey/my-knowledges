@@ -43,8 +43,7 @@ final class SkillGenerator {
         SelectionConfig config = SelectionConfig.load(root.resolve("skills-config.yaml"));
         Path output = root.resolve("build/skills");
         FileSupport.deleteTree(output);
-        FileSupport.deleteTree(root.resolve("build/distributions/skills.zip"));
-        FileSupport.deleteTree(root.resolve("build/distributions/skills.zip.sha256"));
+        ReproducibleArchive.deletePrevious(root.resolve("build/distributions"));
         FileSupport.deleteTree(root.resolve("build/skills-report.json"));
 
         Map<String, String> states = scan(root, config);

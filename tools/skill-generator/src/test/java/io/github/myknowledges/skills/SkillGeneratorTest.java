@@ -204,12 +204,22 @@ class SkillGeneratorTest {
         assertFalse(Files.exists(oldSkill));
         write("build/distributions/skills.zip", "stale archive");
         write("build/distributions/skills.zip.sha256", "stale checksum");
+        write("build/distributions/skills-v1.2.3.zip", "stale tagged archive");
+        write("build/distributions/skills-v1.2.3.zip.sha256", "stale tagged checksum");
+        write("build/distributions/skills-012345abcdef.zip", "stale hashed archive");
+        write("build/distributions/skills-012345abcdef.zip.sha256", "stale hashed checksum");
+        write("build/distributions/other.zip", "keep");
         write("a.md", "# A\n[missing](missing.md)");
         assertThrows(LinkException.class, this::generate);
         assertFalse(Files.exists(root.resolve("build/skills")));
         assertFalse(Files.exists(root.resolve("build/skills-report.json")));
         assertFalse(Files.exists(root.resolve("build/distributions/skills.zip")));
         assertFalse(Files.exists(root.resolve("build/distributions/skills.zip.sha256")));
+        assertFalse(Files.exists(root.resolve("build/distributions/skills-v1.2.3.zip")));
+        assertFalse(Files.exists(root.resolve("build/distributions/skills-v1.2.3.zip.sha256")));
+        assertFalse(Files.exists(root.resolve("build/distributions/skills-012345abcdef.zip")));
+        assertFalse(Files.exists(root.resolve("build/distributions/skills-012345abcdef.zip.sha256")));
+        assertEquals("keep", Files.readString(root.resolve("build/distributions/other.zip")));
     }
 
     @Test
@@ -238,26 +248,29 @@ class SkillGeneratorTest {
         write("data.bin", "binary\u0000data");
         generate();
         Path bundle = root.resolve("build/skills");
-        Path archive = root.resolve("build/distributions/skills.zip");
+        Path distributions = root.resolve("build/distributions");
         ReproducibleArchive packager = new ReproducibleArchive();
         TimeZone original = TimeZone.getDefault();
         byte[] first;
+        Path archive;
         try {
             TimeZone.setDefault(TimeZone.getTimeZone("Pacific/Honolulu"));
-            packager.write(bundle, archive);
+            archive = packager.write(bundle, distributions);
             first = Files.readAllBytes(archive);
             Files.setLastModifiedTime(skillDirectory("z.md").resolve("SKILL.md"),
                     FileTime.from(Instant.parse("2026-01-01T00:00:00Z")));
             TimeZone.setDefault(TimeZone.getTimeZone("Asia/Tokyo"));
             generate();
-            packager.write(bundle, archive);
+            assertEquals(archive, packager.write(bundle, distributions));
         } finally {
             TimeZone.setDefault(original);
         }
 
         assertArrayEquals(first, Files.readAllBytes(archive));
-        assertEquals(Hashes.sha256(first) + "  skills.zip\n",
-                Files.readString(archive.resolveSibling("skills.zip.sha256")));
+        assertEquals("skills-" + Hashes.sha256(first).substring(0, 12) + ".zip",
+                archive.getFileName().toString());
+        assertEquals(Hashes.sha256(first) + "  " + archive.getFileName() + "\n",
+                Files.readString(archive.resolveSibling(archive.getFileName() + ".sha256")));
         try (ZipFile zip = new ZipFile(archive.toFile())) {
             List<String> names = new ArrayList<>();
             zip.stream().forEach(entry -> {

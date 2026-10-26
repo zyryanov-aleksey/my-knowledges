@@ -62,6 +62,7 @@ registerCommand("packageSkills", "package",
     "Validate and package an already generated skill set reproducibly.").configure {
     dependsOn(validateSkills)
     mustRunAfter(generateSkills)
+    providers.gradleProperty("skillsTag").orNull?.let { args(it) }
 }
 
 tasks.wrapper {
