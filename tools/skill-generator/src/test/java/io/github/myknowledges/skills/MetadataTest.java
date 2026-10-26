@@ -21,7 +21,8 @@ class MetadataTest {
 
     private final MarkdownSupport markdown = new MarkdownSupport();
 
-    private final DescriptionProvider descriptions = new HeadingDescriptionProvider();
+    private final DescriptionProvider descriptions =
+            new AgentDescriptionProvider(new HeadingDescriptionProvider());
 
 
     @Test
@@ -30,6 +31,48 @@ class MetadataTest {
                 "# **Title** with `code` and [a link](https://example.com) &amp; entity\n" +
                 "# Second"));
         assertEquals("Setext title", description("Setext *title*\n===\n"));
+    }
+
+    @Test
+    void prefersAgentDescriptionToHeadingAndBodyText() {
+        assertEquals("Manual description", description("---\n" +
+                "agent-desc: Manual description\n---\n\nIntro\n\n# Heading"));
+        assertEquals("Manual description", description("---\n" +
+                "agent-desc: Manual description\n---\n\n```\nOnly code\n```"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "description: Legacy description", "agent-desc:",
+            "agent-desc: null", "agent-desc: ''", "agent-desc: '   '",
+            "agent-desc: \"\n   \n\""
+    })
+    void fallsBackWhenAgentDescriptionIsNotFilled(String fields) {
+        String metadata = "---\n" + fields + "\n---\n\n";
+        assertEquals("Heading", description(metadata + "Intro\n\n# Heading"));
+        assertEquals("First paragraph", description(metadata + "First *paragraph*\nSecond line"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "agent-desc: \"\nFirst line\nSecond line\n\"",
+            "agent-desc: |-\n  First line\n  Second line",
+            "agent-desc: >-\n  First line\n  Second line"
+    })
+    void parsesMultilineYamlDescriptions(String field) {
+        assertEquals("First line Second line", description("---\n" + field +
+                "\n---\n\n# Heading"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "agent-desc: [invalid", "agent-desc: \"unclosed",
+            "agent-desc: [one, two]", "agent-desc: {text: value}",
+            "agent-desc: 42", "agent-desc: true"
+    })
+    void rejectsMalformedYamlAndNonStringAgentDescriptions(String field) {
+        assertThrows(IllegalArgumentException.class,
+                () -> description("---\n" + field + "\n---\n\n# Heading"));
     }
 
     @Test
@@ -55,7 +98,20 @@ class MetadataTest {
     }
 
     @Test
-    void escapesYamlAndPreservesOriginalText(@TempDir Path root) throws Exception {
+    void limitsAgentDescriptionByUnicodeCodePoints() {
+        assertEquals("Ж".repeat(1024), description("---\nagent-desc: " + "Ж".repeat(1100) +
+                "\n---\n\n# Heading"));
+        String supplementary = description("---\nagent-desc: " +
+                "\uD801\uDC00".repeat(1100) + "\n---\n\n# Heading");
+        assertEquals("\uD801\uDC00".repeat(1024), supplementary);
+    }
+
+    @Test
+    void escapesYamlAndPreservesOriginalText(
+            @TempDir
+            Path root
+    ) throws Exception {
+
         Files.writeString(root.resolve("skills-config.yaml"), "ignore:\n  - build/\n");
         String source = "# Value: \"quotes\", [brackets], \\slashes, 'single'\n\nBody";
         Files.writeString(root.resolve("a.md"), source);
@@ -65,7 +121,8 @@ class MetadataTest {
         String generated = Files.readString(root.resolve("build/skills")
                 .resolve(SkillNames.fromPath("a.md")).resolve("SKILL.md"));
         int boundary = generated.indexOf("\n---\n", 4);
-        var metadata = new ObjectMapper(new YAMLFactory()).readTree(generated.substring(4, boundary));
+        var metadata = new ObjectMapper(new YAMLFactory()).readTree(
+                generated.substring(4, boundary));
         assertEquals(description(source), metadata.get("description").asText());
         assertEquals(source, generated.substring(boundary + 5));
         assertEquals(source, Files.readString(root.resolve("a.md")));
@@ -84,17 +141,27 @@ class MetadataTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"include: []", "ignore: anything", "ignore: [../outside/]",
+    @ValueSource(strings = {
+            "include: []", "ignore: anything", "ignore: [../outside/]",
             "ignore: [/absolute/]", "ignore: [a/../b]", "ignore: [a//b]", "ignore: [a/./b]",
-            "ignore: [null]", "ignore: ['']", "ignore: []\nother: []"})
-    void rejectsInvalidSelectionConfig(String config, @TempDir Path root) throws Exception {
+            "ignore: [null]", "ignore: ['']", "ignore: []\nother: []"
+    })
+    void rejectsInvalidSelectionConfig(String config,
+                                       @TempDir
+                                       Path root
+    ) throws Exception {
+
         Path path = root.resolve("skills-config.yaml");
         Files.writeString(path, config);
         assertThrows(IllegalArgumentException.class, () -> SelectionConfig.load(path));
     }
 
     @Test
-    void fileRuleDoesNotExcludeADirectorySubtree(@TempDir Path root) throws Exception {
+    void fileRuleDoesNotExcludeADirectorySubtree(
+            @TempDir
+            Path root
+    ) throws Exception {
+
         Path path = root.resolve("skills-config.yaml");
         Files.writeString(path, "ignore:\n  - notes\n  - ..private.md\n");
         SelectionConfig config = SelectionConfig.load(path);
@@ -106,4 +173,5 @@ class MetadataTest {
     private String description(String source) {
         return descriptions.describe(markdown.parse(source));
     }
+
 }

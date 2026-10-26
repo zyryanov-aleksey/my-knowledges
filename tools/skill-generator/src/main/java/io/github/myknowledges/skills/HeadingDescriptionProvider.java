@@ -5,7 +5,14 @@ import com.vladsch.flexmark.ast.Paragraph;
 import com.vladsch.flexmark.util.ast.Node;
 import com.vladsch.flexmark.util.ast.TextCollectingVisitor;
 
+/**
+ * Резервный источник описания из первого H1 или первой строки текста вне кода.
+ */
 public final class HeadingDescriptionProvider implements DescriptionProvider {
+
+
+    private final DescriptionNormalizer normalizer = new DescriptionNormalizer();
+
 
     @Override
     public String describe(Node document) {
@@ -31,11 +38,10 @@ public final class HeadingDescriptionProvider implements DescriptionProvider {
     }
 
     private String limit(String text) {
-        String normalized = text.replaceAll("\\s+", " ").strip();
+        String normalized = normalizer.normalize(text);
         if (normalized.isEmpty()) {
             throw new IllegalArgumentException("EMPTY_DESCRIPTION: first H1 has no text");
         }
-        int length = normalized.codePointCount(0, normalized.length());
-        return normalized.substring(0, normalized.offsetByCodePoints(0, Math.min(1024, length)));
+        return normalized;
     }
 }

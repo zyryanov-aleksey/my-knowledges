@@ -6,7 +6,7 @@ import lombok.Builder;
 
 @Builder
 record Skill(String source, String name, String description, String sha256,
-        String body, List<LinkDestination> links) {
+        String body, List<LinkDestination> links, int frontMatterEndOffset) {
 
     ManifestEntry manifestEntry() {
         return ManifestEntry.builder().source(source).name(name)

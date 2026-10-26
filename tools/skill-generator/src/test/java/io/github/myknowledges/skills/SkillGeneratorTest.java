@@ -47,7 +47,7 @@ class SkillGeneratorTest {
         write(".gitignore", "visible.md\n");
         write("visible.md", "# Visible\n[asset](media/raw.bin)\n[again](media/raw.bin)");
         write("nested/other.md", "# Other\n[asset](/media/raw.bin)");
-        byte[] bytes = new byte[] {0, 1, 2, -1, -128, 10, 13};
+        byte[] bytes = new byte[]{0, 1, 2, -1, -128, 10, 13};
         Files.createDirectories(root.resolve("media"));
         Files.write(root.resolve("media/raw.bin"), bytes);
         write("unused.txt", "unused");
@@ -76,6 +76,75 @@ class SkillGeneratorTest {
     }
 
     @Test
+    void replacesCardMetadataWithOneSkillFrontmatterAndPreservesSource() throws IOException {
+        config();
+        String description = "Value: \"quotes\", [brackets], \\slashes, 'single'";
+        String body = "\n# Heading\n\nInstructions\n\n```yaml\n---\n" +
+                "agent-desc: literal example\ndescription: literal example\n---\n```";
+        String source = "---\nagent-desc: |-\n  " + description +
+                "\nname: old-name\ndescription: obsolete description\n---\n" + body;
+        write("a.md", source);
+        byte[] original = Files.readAllBytes(root.resolve("a.md"));
+
+        generate();
+
+        JsonNode metadata = metadata("a.md");
+        assertEquals(2, metadata.size());
+        assertEquals(SkillNames.fromPath("a.md"), metadata.get("name").asText());
+        assertEquals(description, metadata.get("description").asText());
+        assertFalse(metadata.has("agent-desc"));
+        assertEquals(body, body("a.md"));
+        assertArrayEquals(original, Files.readAllBytes(root.resolve("a.md")));
+        assertEquals(description, manifestEntry("a.md").get("description").asText());
+        assertEquals(Hashes.sha256(original), manifestEntry("a.md").get("sha256").asText());
+    }
+
+    @Test
+    void rewritesLinksAfterMultilineCardMetadataAndPreservesCrlf() throws IOException {
+        config();
+        String sourceBody = "\r\n# A\r\n\r\n[inline](b.md#part)  \r\n" +
+                "[asset](data.bin) [reference][target]\r\n\r\n" +
+                "[target]: b.md#reference \"title\"\r\n\r\n" +
+                "```yaml\r\n---\r\nagent-desc: literal\r\n" +
+                "description: literal\r\n---\r\n```";
+        String source = "---\r\nagent-desc: \"\r\nManual description\r\n\"\r\n---\r\n" +
+                sourceBody;
+        write("a.md", source);
+        write("b.md", "# B");
+        write("data.bin", "bytes");
+
+        generate();
+
+        assertEquals("Manual description", metadata("a.md").get("description").asText());
+        assertEquals(sourceBody.replace("b.md#", "../" + SkillNames.fromPath("b.md") + "/SKILL.md#")
+                .replace("(data.bin)", "(assets/data.bin)"), body("a.md"));
+        assertEquals(source, Files.readString(root.resolve("a.md")));
+        new BundleValidator().validate(root.resolve("build/skills"));
+    }
+
+    @Test
+    void reportsOriginalLinkLineIncludingRemovedCardMetadata() throws IOException {
+        config();
+        write("a.md", "---\r\nagent-desc: >-\r\n  Manual\r\n  description\r\n" +
+                "---\r\n\r\n# A\r\n[bad](missing.md)");
+
+        LinkException error = assertThrows(LinkException.class, this::generate);
+
+        assertEquals("MISSING_TARGET: a.md:8: missing.md", error.getMessage());
+    }
+
+    @Test
+    void reportsSourceFileForMalformedCardMetadata() throws IOException {
+        config();
+        write("a.md", "---\nagent-desc: [unclosed\n---\n\n# A");
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                this::generate);
+
+        assertTrue(error.getMessage().startsWith("a.md:"));
+    }
+
+    @Test
     void rewritesLinksImagesReferencesAndCyclesWithoutReserializingMarkdown() throws IOException {
         config();
         String source = "# A\r\n\r\n" +
@@ -94,7 +163,8 @@ class SkillGeneratorTest {
 
         generate();
 
-        String expected = source.replace("../b.md", "../" + SkillNames.fromPath("b.md") + "/SKILL.md")
+        String expected = source.replace("../b.md",
+                        "../" + SkillNames.fromPath("b.md") + "/SKILL.md")
                 .replace("/media/picture.bin", "assets/media/picture.bin");
         assertEquals(expected, body("notes/a.md"));
         assertTrue(body("b.md").contains("../" + SkillNames.fromPath("notes/a.md") +
@@ -115,8 +185,8 @@ class SkillGeneratorTest {
         generate();
 
         assertEquals("# A\n[space](../" + SkillNames.fromPath("file name.md") +
-                "/SKILL.md?q=a+b#x)\n[unicode](../" + SkillNames.fromPath("заметка.md") +
-                "/SKILL.md)\n[asset](assets/media/a+b%20%23%3F%28x%29.bin?download=1#raw)",
+                        "/SKILL.md?q=a+b#x)\n[unicode](../" + SkillNames.fromPath("заметка.md") +
+                        "/SKILL.md)\n[asset](assets/media/a+b%20%23%3F%28x%29.bin?download=1#raw)",
                 body("a.md"));
         new BundleValidator().validate(root.resolve("build/skills"));
     }
@@ -147,7 +217,11 @@ class SkillGeneratorTest {
             "/../outside.md,OUTSIDE_ROOT", "%2e%2e/%2e%2e/outside.md,OUTSIDE_ROOT",
             "invalid%00.md,UNSUPPORTED_TARGET", "invalid%ZZ.md,UNSUPPORTED_TARGET"
     })
-    void reportsSourceLineAndAddressForEachLinkError(String address, String code) throws IOException {
+    void reportsSourceLineAndAddressForEachLinkError(
+            String address,
+            String code
+    ) throws IOException {
+
         config("private.md", "private.bin", "hidden/");
         write("private.md", "# Private");
         write("private.bin", "private");
@@ -218,7 +292,8 @@ class SkillGeneratorTest {
         assertFalse(Files.exists(root.resolve("build/distributions/skills-v1.2.3.zip")));
         assertFalse(Files.exists(root.resolve("build/distributions/skills-v1.2.3.zip.sha256")));
         assertFalse(Files.exists(root.resolve("build/distributions/skills-012345abcdef.zip")));
-        assertFalse(Files.exists(root.resolve("build/distributions/skills-012345abcdef.zip.sha256")));
+        assertFalse(
+                Files.exists(root.resolve("build/distributions/skills-012345abcdef.zip.sha256")));
         assertEquals("keep", Files.readString(root.resolve("build/distributions/other.zip")));
     }
 
@@ -323,7 +398,7 @@ class SkillGeneratorTest {
     @Test
     void rejectsMalformedUtf8RatherThanChangingSourceText() throws IOException {
         config();
-        Files.write(root.resolve("a.md"), new byte[] {'#', ' ', (byte) 0xC3, (byte) 0x28});
+        Files.write(root.resolve("a.md"), new byte[]{'#', ' ', (byte) 0xC3, (byte) 0x28});
         assertThrows(java.nio.charset.CharacterCodingException.class, this::generate);
     }
 
@@ -335,14 +410,19 @@ class SkillGeneratorTest {
         write("skills-config.yaml", config.toString());
     }
 
-    private void write(String path, String body) throws IOException {
+    private void write(
+            String path,
+            String body
+    ) throws IOException {
+
         Path file = root.resolve(path);
         Files.createDirectories(file.getParent());
         Files.writeString(file, body, StandardCharsets.UTF_8);
     }
 
     private void generate() throws IOException {
-        new SkillGenerator(new HeadingDescriptionProvider()).generate(root);
+        new SkillGenerator(new AgentDescriptionProvider(new HeadingDescriptionProvider())).generate(
+                root);
     }
 
     private JsonNode manifest() throws IOException {
@@ -392,4 +472,5 @@ class SkillGeneratorTest {
         }
         return snapshot;
     }
+
 }

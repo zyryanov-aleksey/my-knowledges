@@ -14,6 +14,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -30,6 +31,8 @@ final class SkillGenerator {
     private final DescriptionProvider descriptionProvider;
 
     private final MarkdownSupport markdown = new MarkdownSupport();
+
+    private final KnowledgeCardFrontMatter frontMatter = new KnowledgeCardFrontMatter();
 
     private final ObjectMapper json = new ObjectMapper();
 
@@ -59,11 +62,15 @@ final class SkillGenerator {
                             ": recommended <500 lines / approximately <5000 tokens; text retained");
                 }
             }
-            json.writerWithDefaultPrettyPrinter().writeValue(output.resolve("manifest.json").toFile(),
-                    skills.values().stream().map(Skill::manifestEntry).toList());
+            json.writerWithDefaultPrettyPrinter().writeValue(
+                    output.resolve("manifest.json").toFile(),
+                    skills.values()
+                            .stream().map(Skill::manifestEntry).toList());
             Map<String, Object> report = new LinkedHashMap<>();
-            report.put("files", states.entrySet().stream()
-                    .map(entry -> Map.of("path", entry.getKey(), "state", entry.getValue())).toList());
+            report.put("files", states.entrySet()
+                    .stream()
+                    .map(entry -> Map.of("path", entry.getKey(), "state", entry.getValue()))
+                    .toList());
             report.put("skillCount", skills.size());
             report.put("warnings", warnings);
             json.writerWithDefaultPrettyPrinter().writeValue(
@@ -72,17 +79,26 @@ final class SkillGenerator {
                 System.err.println(warning);
             }
             System.out.println("Generated " + skills.size() + " skills in " + output);
-        } catch (IOException | RuntimeException exception) {
+        } catch (IOException |
+                 RuntimeException exception) {
             FileSupport.deleteTree(output);
             throw exception;
         }
     }
 
-    private Map<String, String> scan(Path root, SelectionConfig config) throws IOException {
+    private Map<String, String> scan(
+            Path root,
+            SelectionConfig config
+    ) throws IOException {
+
         Map<String, String> states = new TreeMap<>();
         Files.walkFileTree(root, new SimpleFileVisitor<>() {
             @Override
-            public FileVisitResult preVisitDirectory(Path directory, BasicFileAttributes attributes) {
+            public FileVisitResult preVisitDirectory(
+                    Path directory,
+                    BasicFileAttributes attributes
+            ) {
+
                 String path = FileSupport.relative(root, directory);
                 if (!directory.equals(root) && config.ignoresDirectory(path)) {
                     states.put(path + "/", "ignored");
@@ -92,13 +108,19 @@ final class SkillGenerator {
             }
 
             @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attributes) {
+            public FileVisitResult visitFile(
+                    Path file,
+                    BasicFileAttributes attributes
+            ) {
+
                 String path = FileSupport.relative(root, file);
                 String state = "unused";
                 if (config.ignores(path)) {
                     state = "ignored";
-                } else if (attributes.isRegularFile() && path.endsWith(".md")) {
-                    state = "skill";
+                } else {
+                    if (attributes.isRegularFile() && path.endsWith(".md")) {
+                        state = "skill";
+                    }
                 }
                 states.put(path, state);
                 return FileVisitResult.CONTINUE;
@@ -107,7 +129,11 @@ final class SkillGenerator {
         return states;
     }
 
-    private Map<String, Skill> index(Path root, Map<String, String> states) throws IOException {
+    private Map<String, Skill> index(
+            Path root,
+            Map<String, String> states
+    ) throws IOException {
+
         Map<String, Skill> skills = new TreeMap<>();
         Set<String> names = new HashSet<>();
         for (Map.Entry<String, String> entry : states.entrySet()) {
@@ -116,35 +142,46 @@ final class SkillGenerator {
             }
             String path = entry.getKey();
             byte[] bytes = Files.readAllBytes(root.resolve(path));
-            String body = StandardCharsets.UTF_8.newDecoder().decode(ByteBuffer.wrap(bytes)).toString();
+            String body = StandardCharsets.UTF_8.newDecoder().decode(ByteBuffer.wrap(bytes))
+                    .toString();
             Node document = markdown.parse(body);
             String name = SkillNames.fromPath(path);
             if (!names.add(name)) {
                 throw new IllegalArgumentException("NAME_COLLISION: " + path + ": " + name);
             }
             String description;
+            int frontMatterEndOffset;
             try {
+                frontMatterEndOffset = frontMatter.endOffset(document);
                 description = descriptionProvider.describe(document);
             } catch (IllegalArgumentException exception) {
                 throw new IllegalArgumentException(path + ": " + exception.getMessage(), exception);
             }
             skills.put(path, Skill.builder().source(path).name(name).description(description)
                     .sha256(Hashes.sha256(bytes)).body(body)
-                    .links(markdown.destinations(document)).build());
+                    .links(markdown.destinations(document))
+                    .frontMatterEndOffset(frontMatterEndOffset).build());
         }
         return skills;
     }
 
-    private void writeSkill(Path root, Path output, SelectionConfig config, Skill skill,
-            Map<String, Skill> skills, Map<String, String> states) throws IOException {
+    private void writeSkill(
+            Path root,
+            Path output,
+            SelectionConfig config,
+            Skill skill,
+            Map<String, Skill> skills,
+            Map<String, String> states
+    ) throws IOException {
 
         Path directory = Files.createDirectory(output.resolve(skill.name()));
         StringBuilder body = new StringBuilder(skill.body());
         // Work backwards so offsets always refer to the original source, including CRLF.
-        List<LinkDestination> links = skill.links().stream()
+        List<LinkDestination> links = skill.links()
+                .stream()
                 .sorted(Comparator.comparingInt(LinkDestination::start).reversed()).toList();
         for (LinkDestination link : links) {
-            var local = FileSupport.localAddress(skill.source(), link);
+            Optional<LocalAddress> local = FileSupport.localAddress(skill.source(), link);
             if (local.isEmpty()) {
                 continue;
             }
@@ -168,6 +205,8 @@ final class SkillGenerator {
             body.replace(link.start(), link.end(),
                     LocalAddress.encodePath(replacement) + address.suffix());
         }
+        // Удаляем метаданные после замен, использующих позиции исходного документа.
+        body.delete(0, skill.frontMatterEndOffset());
         Map<String, String> metadata = new LinkedHashMap<>();
         metadata.put("name", skill.name());
         metadata.put("description", skill.description());
@@ -175,4 +214,5 @@ final class SkillGenerator {
         Files.writeString(directory.resolve("SKILL.md"), frontmatter + body,
                 StandardCharsets.UTF_8);
     }
+
 }

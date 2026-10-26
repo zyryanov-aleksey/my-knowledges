@@ -4,8 +4,17 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Optional;
 
+/**
+ * Командная точка входа для генерации, проверки и упаковки набора навыков.
+ */
 public final class SkillGeneratorApplication {
 
+    /**
+     * Запустить команду генератора для указанного корня репозитория.
+     *
+     * @param args команда, путь к репозиторию и необязательный тег для упаковки
+     * @throws IOException при ошибке чтения исходников или записи результатов
+     */
     public static void main(String[] args) throws IOException {
         if (args.length < 2 || args.length > 3 ||
                 args.length == 3 && !args[0].equals("package")) {
@@ -16,7 +25,8 @@ public final class SkillGeneratorApplication {
         FileSupport.checkBuildDirectory(root);
         Path bundle = root.resolve("build/skills");
         switch (args[0]) {
-            case "generate" -> new SkillGenerator(new HeadingDescriptionProvider()).generate(root);
+            case "generate" -> new SkillGenerator(
+                    new AgentDescriptionProvider(new HeadingDescriptionProvider())).generate(root);
             case "validate" -> new BundleValidator().validate(bundle);
             case "package" -> {
                 new BundleValidator().validate(bundle);
@@ -28,4 +38,5 @@ public final class SkillGeneratorApplication {
             default -> throw new IllegalArgumentException("Unknown command: " + args[0]);
         }
     }
+
 }
