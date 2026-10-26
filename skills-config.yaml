@@ -6,3 +6,5 @@ ignore:
   - tools/skill-generator/
   - build/
   - SKILL.md
+  - AGENTS.md
+  - CHANGELOG.md
