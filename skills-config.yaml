@@ -1,0 +1,8 @@
+ignore:
+  - .git/
+  - .github/
+  - .idea/
+  - .gradle/
+  - tools/skill-generator/
+  - build/
+  - SKILL.md

@@ -1,0 +1,85 @@
+name: Agent Skills
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+    tags: ['skills-v*']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.11.28'
+      - name: Test and generate
+        run: |
+          tools/skill-generator/gradlew -p tools/skill-generator check generateSkills --no-daemon
+          python -m unittest discover -s tools/skill-generator/scripts -p 'test_*.py'
+      - name: Checkout pinned skills-ref
+        uses: actions/checkout@v4
+        with:
+          repository: agentskills/agentskills
+          ref: 69ef37e9424c0a7ea9dd2293b559e43ec8176379
+          path: build/skills-ref-source
+          persist-credentials: false
+      - name: Install pinned validator dependencies
+        run: uv sync --locked --no-dev --project build/skills-ref-source/skills-ref
+      - name: Validate metadata and local links
+        run: |
+          python tools/skill-generator/scripts/validate_skills.py build/skills \
+            --validator build/skills-ref-source/skills-ref/.venv/bin/skills-ref
+          tools/skill-generator/gradlew -p tools/skill-generator validateSkills --no-daemon
+      - name: Package validated set
+        run: tools/skill-generator/gradlew -p tools/skill-generator packageSkills --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agent-skills
+          path: |
+            build/distributions/skills.zip
+            build/distributions/skills.zip.sha256
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: skills-report
+          path: build/skills-report.json
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/skills-v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: skills-release-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: agent-skills
+          path: build/distributions
+      - name: Publish immutable assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python tools/skill-generator/scripts/publish_release.py build/distributions/skills.zip
