@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
+import java.util.zip.ZipFile;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -14,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ReproducibleArchiveTest {
@@ -68,6 +70,42 @@ class ReproducibleArchiveTest {
 
         assertArrayEquals(Files.readAllBytes(hashed), Files.readAllBytes(tagged));
         assertArrayEquals(Files.readAllBytes(tagged), Files.readAllBytes(otherTag));
+    }
+
+    @Test
+    void excludesOnlyRootManifestAndPreservesResourceBytes() throws IOException {
+        Path bundle = bundle();
+        Path manifest = Files.writeString(bundle.resolve("manifest.json"), "[]");
+        Path asset = bundle.resolve("example/assets/data/manifest.json");
+        Files.createDirectories(asset.getParent());
+        byte[] resource = new byte[] {0, 1, -1, 10, 13};
+        Files.write(asset, resource);
+
+        Path archive = packager.write(bundle, root.resolve("distributions"));
+
+        assertEquals("[]", Files.readString(manifest));
+        try (ZipFile zip = new ZipFile(archive.toFile())) {
+            assertNull(zip.getEntry("manifest.json"));
+            try (var input = zip.getInputStream(zip.getEntry("example/assets/data/manifest.json"))) {
+                assertArrayEquals(resource, input.readAllBytes());
+            }
+        }
+    }
+
+    @Test
+    void changingOnlyRootManifestDoesNotChangeArchiveBytesOrHashName() throws IOException {
+        Path bundle = bundle();
+        Path manifest = Files.writeString(bundle.resolve("manifest.json"), "[]");
+        Path directory = root.resolve("distributions");
+        Path first = packager.write(bundle, directory);
+        byte[] original = Files.readAllBytes(first);
+
+        Files.writeString(manifest, "[{\"source\":\"changed.md\"}]");
+        Path changed = packager.write(bundle, directory);
+
+        assertEquals(first, changed);
+        assertArrayEquals(original, Files.readAllBytes(changed));
+        assertEquals("[{\"source\":\"changed.md\"}]", Files.readString(manifest));
     }
 
     @Test

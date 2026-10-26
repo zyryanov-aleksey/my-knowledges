@@ -56,6 +56,7 @@ final class ReproducibleArchive {
                         StandardCharsets.UTF_8)) {
 
             for (Path file : files.filter(Files::isRegularFile)
+                    .filter(path -> !path.equals(bundle.resolve("manifest.json")))
                     .sorted(Comparator.comparing(path -> FileSupport.relative(bundle, path))).toList()) {
                 ZipEntry entry = new ZipEntry(FileSupport.relative(bundle, file));
                 entry.setTimeLocal(LocalDateTime.of(2000, 1, 1, 0, 0));

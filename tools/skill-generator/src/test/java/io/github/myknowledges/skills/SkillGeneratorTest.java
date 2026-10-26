@@ -353,7 +353,8 @@ class SkillGeneratorTest {
                 assertEquals(java.time.LocalDateTime.of(2000, 1, 1, 0, 0), entry.getTimeLocal());
             });
             assertEquals(names.stream().sorted().toList(), names);
-            assertTrue(names.contains("manifest.json"));
+            assertFalse(names.contains("manifest.json"));
+            assertTrue(Files.isRegularFile(bundle.resolve("manifest.json")));
             assertArrayEquals(Files.readAllBytes(root.resolve("data.bin")),
                     zip.getInputStream(zip.getEntry(SkillNames.fromPath("z.md") +
                             "/assets/data.bin")).readAllBytes());
