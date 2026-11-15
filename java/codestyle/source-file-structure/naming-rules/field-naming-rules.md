@@ -39,8 +39,9 @@ int DEFAULT_PORT = -1;
 
 Правило относится к: полям классов, параметрам метода, локальным переменным
 
-- Имена переменных должны отражать смысл и состояние, а не тип. 
-Пример: `pendingOrders`, `normalizedEmail`, `existingUser`.
-- для boolean значений имена должны содержать `is`/`has`/`can`/`should`, пример: `isActive`, `hasAccess`
-- Коллекции именуются так же по смыслу или состоянию, но во множественном числе, пример: `activeUsers`, `validatedOrders`, `invalidEmails`
-- Если однотипных сущностей несколько - уточнять роль: `sourceAccount`, `targetAccount`, `sender`, `recipient`.
+1) Имена переменных должны отражать смысл и состояние, а не тип (`pendingOrders`, `normalizedEmail`, `existingUser`)
+    1) Как правильно придумать имя переменной? - Надо задать себе вопрос: `..User` "какой?" - `обработанный`, `сохраненный`, `валидный`, `заблокированный`
+2) для boolean значений имена должны содержать `is`/`has`/`can`/`should`, пример: `isActive`, `hasAccess`
+3) Коллекции именуются так же по смыслу или состоянию, но во множественном числе, пример: `activeUsers`, `validatedOrders`, `invalidEmails`
+4) Если однотипных сущностей несколько - уточнять роль: `sourceAccount`, `targetAccount`, `sender`, `recipient`.
+

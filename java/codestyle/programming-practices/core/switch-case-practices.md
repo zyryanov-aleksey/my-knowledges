@@ -19,6 +19,8 @@ agent-desc: "
 
 # Использование switch-case
 
+`switch-case` должен явно определять поведение для всех значений, которые могут попасть в него. Необработанные значения не должны молча игнорироваться.
+
 Главная цель `switch-case` конструкции - сделать ветвление кода понятным, структурированным и удобным для сопровождения.
 
 Правила при выборе `switch-case` против `if-else`:
@@ -33,10 +35,12 @@ agent-desc: "
 - Обрабатывать все возможные значения, если это невозможно то использовать `default -> throw`
 - Всегда использовать `default` ветку с выбросом исключения (`throw new IllegalArgumentException(..//msg..)`)
   Выбрасывать исключение необходимо **всегда**: если что-то пошло не так, сразу выбрасываем ошибку, а не продолжаем выполнение с некорректными данными (**Fail-fast**)
+- Не создавать default ветку при работе с `enum` или `Sealed classes/interfaces` - это делается для того чтобы компилятор автоматически подсветил нам что мы не обработали новое добавленное значение в enum или sealed class/interface
 
 Правильные примеры:
 
 ```java
+// есть default ветка и она выбрасывает ошибку, чтобы подсветить программисту его проблему в коде
 Status findStatus(int statusCode) {
 
     return switch (statusCode) {
@@ -46,12 +50,12 @@ Status findStatus(int statusCode) {
     };
 }
 
+// Нет default ветки для своевременной подсветки ошибки при добавлении нового значения для enum
 String getMessage(StateEnum state) {
 
     String message = switch (state) {
         case NEW -> "New state;
         case DONE -> "Done state";
-        default -> throw new IllegalStateException("Неподдерживаемый статус: %s".formatted(status));
     };
 }
 
