@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - заретил использовать var
 - описал синтаксис @UtilityClasses
 - рассказал как писать todo
+- как правильно логировать события приложения
 
 
 ## [1.0.9] - 2026-11-16
