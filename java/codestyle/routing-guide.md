@@ -43,9 +43,44 @@ agent-desc: "
 
 ## Навигация по обязательным правилам написания кода
 
-- Как объявлять лицензию: [license-guide.md](/java/codestyle/source-file-structure/license-guide.md)
-- Как правильно использовать импорты: [imports-structure.md](/java/codestyle/source-file-structure/imports-structure.md)
-- Как правильно организовать Java-файл: [java-file-organisation.md](/java/codestyle/source-file-structure/java-file-organisation.md)
-- Форматирование исходного кода: [source-file-formatting.md](/java/codestyle/source-file-structure/code-formatting/source-file-formatting.md)
-- Правила объявления классов: [class-declaration.md](/java/codestyle/source-file-structure/class-declaration.md)
-- Правила именования классов/методов/переменных/etc: [global-naming-rules.md](/java/codestyle/source-file-structure/naming-rules/global-naming-rules.md)
+### Структура исходного файла
+
+- [Оформление лицензии](/java/codestyle/source-file-structure/license-guide.md)
+- [Группировка и порядок импортов](/java/codestyle/source-file-structure/imports-structure.md)
+- [Порядок полей, конструкторов и методов в классе](/java/codestyle/source-file-structure/java-file-organisation.md)
+- [Объявление классов](/java/codestyle/source-file-structure/class-declaration.md)
+
+### Форматирование
+
+- [Общие правила форматирования](/java/codestyle/source-file-structure/code-formatting/source-file-formatting.md)
+- [Разделение кода пустыми строками](/java/codestyle/source-file-structure/code-formatting/blank-lines.md)
+- [Расстановка фигурных скобок](/java/codestyle/source-file-structure/code-formatting/curly-braces-usage.md)
+- [Перенос длинных строк](/java/codestyle/source-file-structure/code-formatting/line-wrapping.md)
+
+### Именование
+
+- [Общие правила выбора имён](/java/codestyle/source-file-structure/naming-rules/global-naming-rules.md)
+- [Имена классов](/java/codestyle/source-file-structure/naming-rules/class-naming-rules.md)
+- [Имена методов](/java/codestyle/source-file-structure/naming-rules/method-naming-rules.md)
+- [Имена полей, констант, параметров и локальных переменных](/java/codestyle/source-file-structure/naming-rules/field-naming-rules.md)
+
+### Объявления и языковые конструкции
+
+- [Объявление переменных](/java/codestyle/programming-practices/core/variable-declarations.md)
+- [Выбор между `var` и явным типом](/java/codestyle/programming-practices/core/var-usage.md)
+- [Объявление массивов и коллекций](/java/codestyle/programming-practices/core/array-declarations.md)
+- [Использование `this` и `super`](/java/codestyle/programming-practices/core/this-and-super-usage.md)
+- [Использование `switch` и `case`](/java/codestyle/programming-practices/core/switch-case-practices.md)
+- [Выбор между тернарным оператором и `if-else`](/java/codestyle/programming-practices/core/ternary-operator.md)
+
+### Практики программирования
+
+- [Обработка исключений](/java/codestyle/programming-practices/core/exception-handling.md)
+- [Проверки на `null` и аннотации nullability](/java/codestyle/programming-practices/nullsafety/nullsafety.md)
+- [Логирование](/java/codestyle/programming-practices/logging.md)
+- [Утилитарные классы](/java/codestyle/programming-practices/utility-classes.md)
+
+### Комментарии и документация
+
+- [Документирование кода с помощью Javadoc](/java/codestyle/programming-practices/comments-and-docs/javadoc-core.md)
+- [Оформление комментариев `TODO`](/java/codestyle/programming-practices/comments-and-docs/todo-comments.md)
