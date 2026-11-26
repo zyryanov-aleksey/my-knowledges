@@ -1,307 +1,319 @@
 ---
 agent-desc: "
-Обязательные правила при написании java кода.
+Обязательные правила при написании Java-кода.
 
-Правила применения модульной архитектуры.
-Правила работы модульной архитектуры.
-Как написать модульное приложение
-Как правильно расположить класс по модулям.
-Разработка модульных приложений.
+Правила применения модульной/package-by-feature архитектуры.
+Правила организации бизнес-модулей и их взаимодействия.
+Правила расположения классов внутри бизнес-модулей.
+Правила инкапсуляции классов, конструкторов и методов.
 
-(
-Стандарты и правила написания java-кода;
-Стандарты и правила ревью java-кода;
-Рекомендации для соблюдения стилистики java-кода;
-Основные практики при написании java-кода;
-)
-"   
+(Стандарты написания и ревью Java-кода;
+Верификация модульной архитектуры;
+Контроль межмодульных зависимостей;
+Контроль visibility/access modifiers;
+Spring Modulith / Modular Monolith;)
+"
 ---
 
-# Как создать модульную архитектуру приложения
+# Модульная/package-by-feature архитектура
 
-`package-by-feature/слоистая архитектура` - устаревший способ для построения архитектуры приложения, так как такая архитектура приводит к огромному количеству классов находящихся в одном пакете, никак не связанных друг с другом.
+Модульная архитектура замечательно подходит для болиших приложений (более 200 классов).
 
-Ему на замену приходит модульная архитекрура, способная структурировать все классы по **бизнес-модулям**
+Важная статья для изучения и пониманя принципов модульной архитектуры, **обязательно к прочтению**: https://phauer.com/2020/package-by-feature/
 
-Переходя на `модульную` архитектуру (`package-by-layer`) мы не отказывается от `package-by-feature/слоистой архитектуры`, мы **используем эту архитектуру внутри модуля**, что облегчает навигацию, а значит переход от слоистой архитектуры к модульной должен быть совершенно безболезненным.
+Чего необходимо придерживаться:
 
+- Каждый модуль владеет своей бизнес-логикой, моделями и доступом к данным.
+- Внутри модуля необходимо придерживаться правил package-by-layer архитектуры, за исключением компонентов, требующих package-private инкапсуляции.
+- Если domain пакет сильно разросся(более 20 классов, то необходимо предложить разделить модуль на 2 части)
+- Не выделять модули исключительно по наличию Entity или таблицы в БД.
 
-## Рекомендуемая структура пакетов
+## Структура package-by-feature приложения
 
-```text
-ru.atc.biig.projectname/
-├── Application                      # Основной класс запуска Spring Boot
-├── shared/                          # Общая функциональность
-│   └── package-info.java
-├── users/                           # Модуль пользователей (bounded context)
-│   ├── rest-api/                    # REST-контракт и DTO
-│   │   ├── dto                      # DTO
-│   │   └── ..RestApi.java           # REST-контракт
-│   ├── rest-controller/             # REST-контроллеры, обработчики ошибок
-│   ├── grpc-handler/                # gRPC-контроллеры/хендлеры, обработчики ошибок
-│   ├── service/                     # сервисы с бизнес-логикой (бизнес операции, валидации, оркестрации, и т.п.)
-│   ├── integration/                 # интеграционные сервисы
-│   ├── repository/                  # Доступ к БД, репозитории
-│   ├── data/
-│   │   ├── domain/                  # Внутренние модели
-│   │   └── entity/                  # Модели хранения
-│   ├── mapper/                      # Преобразования DTO, protobuf и внутренних моделей
-│   ├── configuration/               # Spring-конфигурация и настройки
-│   ├── scheduler/                   # Запуск задач по расписанию
-│   ├── batch/                       # Задачи Spring Batch
-│   ├── exception/                   # Исключения приложения
-│   ├── utils/                       # Вспомогательные функции
-│   └── UsersModuleAPI.java          # Публичный API модуля (фасад)
-│
-├── catalog/                         # Модуль каталога
-├── orders/                          # Модуль заказов
-├── health/                          # Модуль проверок готовности и доступности
-└── config/                          # Глобальная конфигурация
-    ├── db/                                  # Источник данных и JDBC-конвертеры
-    ├── properties/                          # Типизированные настройки
-    ├── GrpcServerConfiguration.java         # gRPC-сервер
-    ├── GrpcClientsConfiguration.java        # Исходящие gRPC-клиенты
-    ├── HttpServiceClientsConfiguration.java # Исходящие HTTP-клиенты
-    ├── JmsConfiguration.java                # Обмен сообщениями
-    ├── SchedulingConfiguration.java         # Планировщики
-    └── CacheConfiguration.java              # Кэширование
+Как должна выглядеть идеальная архитектура:
 
 ```
+├── order/
+│   ├── package-info.java
+│   ├── OrderModuleApi.java                     # Публичный контракт модуля
+│   ├── OrderModuleData.java              # Публичная модель данных
+│   ├── OrderRequstModuleData.java              # Публичная модель запроса
+│   ├── OrderResponseModuleData.java            # Публичная модель ответа
+│   ├── OrderModuleEventData.java               # Публичное бизнес-событие
+│   ├── OrderModuleException.java               # Публичное исключение для обработки
+│   ├── domain/                                 # Бизнес-ядро модуля
+│   │   ├── OrderService.java
+│   │   ├── OrderJdbcRepository.java
+│   │   ├── OrderCrudRepository.java
+│   │   ├── OrderEntity.java
+│   │   ├── OrderMapper.java
+│   │   ├── OrderDetailsDomain.java
+│   │   ├── OrderStatusEnum.java
+│   │   ├── ..BatchReader.java                       # Все что угодно связанное со spring-batch, например Job, Step, Reader, Processor, Writer, etc
+│   │   └── OrderException.java
+│   ├── restapi/
+│   │   ├── dto/
+│   │   │   └── OrderDto.java
+│   │   ├── restcontroller/
+│   │   │   ├── OrderRestController.java
+│   │   │   └── OrderRestExceptionHandler.java
+│   │   └── OrderRestApi.java
+│   ├── grpchandler/
+│   │   ├── OrderGrpcHandler.java
+│   │   └── OrderGrpcExceptionHandler.java
+│   ├── service/
+│   │   └── integration/
+│   │       ├── OrderIntegrationService.java
+│   │       └── OrderIntegrationApi.java
+│   ├── mapper/                                 # Транспортные мапперы
+│   │   └── OrderRestMapper.java
+│   ├── configuration/
+│   │   ├── properties/
+│   │   │   └── OrderProperties.java
+│   │   └── OrderConfiguration.java
+│   ├── scheduler/
+│   │   └── OrderScheduler.java
+│   └── utils/
+├── ../
+│   ├── ..ModuleApi.java
+│   ├── ..ModuleDto.java
+│   ├── ..ModuleEventDto.java
+│   └── domain/
+│       └── ...
+├── customer/
+│   ├── CustomerModuleApi.java
+│   └── domain/
+│       └── ...
+├── shared/                           # Общие технические компоненты
+├── configuration/                    # Глобальная Spring-конфигурация
+└── Application.java
+```
+
+
+## Направление зависимостей
+
+### Внутри модуля
+
+```
+ModuleApi ───────┐
+RestController ──┤
+GrpcHandler ─────┼──> Service ──┬──> Repository
+Scheduler ───────┤              ├──> IntegrationService ──> IntegrationApi
+Batch ───────────┘              └──> Другой ModuleApi
+```
+
+### Между модулями
+
+```
+order.domain.OrderService
+    └──> payment.PaymentModuleApi
+             └──> payment.domain.PaymentService
+                      └──> payment.domain.PaymentCrudRepository
+```
+
+Правила:
+
+- Межмодульные зависимости - только через публичный контракт модуля.
+- Не обращаться к Service, Repository, Entity, Mapper и т.д. другого модуля напрямую.
+- Не допускать циклических зависимостей между модулями.
+- Entity и транспортные модели не должны пересекать границы модулей.
+- Не расширять visibility компонента исключительно ради удобства вызова.
+
+## Правила модулей и пакетов
+
+### Application
+
+- `@SpringBootApplication` в корне приложения.
+- Дополнительные `@Enable*` и настройки — в Configuration.
+- Без бизнес-логики.
+
+### Module root / ModuleApi
+
+- `..ModuleApi` — публичный межмодульный контракт (фасад).
+- Вход/выход: публичные `..EventModuleData`, `..ModuleData`, `..ModuleException`.
+- Делегировать бизнес-операции в Service.
+- Не создавать Interface + Impl без необходимости.
+- В корне модуля размещать только публичный контракт, его модели и бизнес-события.
+- Не создавать ModuleApi, если отсутствуют внешние потребители модуля.
 
-## Описание структуры пакетов
+### domain
 
-### Application.java
+Бизнес-ядро модуля.
 
-Основной класс запуска Spring Boot приложения, аннотированный `@SpringBootApplication`. Содержит метод `main()`, который запускает приложение.
+Service, Repository, Entity и внутренние Mapper размещать
+в одном Java-пакете для package-private инкапсуляции.
 
-### shared/
+#### Service
 
-Содержит сквозную функциональность и компоненты, используемые несколькими модулями:
+- `..Service` — бизнес-операции, валидации, оркестрация.
+- Транзакционные границы (`@Transactional`).
+- Вход/выход: Domain-объекты.
+- Constructor injection, зависимости `private final`.
+- Конструкторы — package-private.
+- Public-методы — только для вызовов из других пакетов своего модуля.
+- Не создавать Interface + Impl без необходимости.
+- Не удерживать DB-транзакцию во время сетевых вызовов без обоснования.
 
-- Общие утилиты.
-- Общие DTO.
-- Базовые классы.
-- Пользовательские аннотации.
+#### Repository
 
-Так же соответсвует внутри слоеной архитектуре.
+- `..JdbcRepository`, `..CrudRepository` — package-private.
+- SQL, JPQL, CRUD, projections.
+- Возвращать Entity или внутренние read models.
+- Без бизнес-логики и бизнес-транзакционных границ.
+- Каждый модуль владеет своими репозиториями.
+- Не переиспользовать Repository между модулями.
+- Не раскрывать Repository через публичные методы Service или ModuleApi.
+- Не выносить Repository в отдельный пакет, если это требует public.
 
-### {module}/
+#### Entity
 
-Например: `users/`, `catalog/`, `orders/`.
+- `..Entity` - package-private модель хранения.
+- Межмодульные связи хранить через идентификаторы.
 
-Каждый модуль по своей структуре должен соответсввовать слоистой архитектуре
+#### Domain
 
-Каждый бизнес-модуль представляет собой отдельный ограниченный контекст (Bounded Context) и содержит следующие компоненты.
+- `..Domain` — внутренняя бизнес-модель.
+- Использовать Lombok, Builder.
+- Предпочитать иммутабельные модели.
+- Package-private по умолчанию.
 
-#### config/
+#### Mapper
 
-Конфигурационные классы модуля, аннотированные `@Configuration`.
+- `..Mapper` - package-private для внутренних преобразований.
+- Domain ↔ Entity.
+- MapStruct или ручной mapping.
+- Без бизнес-логики, I/O и side effects.
 
-Содержат настройки бинов, свойства конфигурации и интеграции со сторонними системами, относящиеся исключительно к данному модулю.
+#### Const / Enum
 
-#### domain/
+- `..Enum`, `..Const` — минимально необходимая visibility.
+- Локальные константы — private static final в классе-владельце.
+- Не хранить конфигурацию окружения.
 
-Основной слой бизнес-логики, содержащий следующие компоненты:
+#### Exception
 
-- **models/** - классы доменных моделей, представляющие бизнес-концепции:
+- `..Exception` — именовать по причине ошибки.
 
-  - Команды (Command).
-  - Объекты запросов (Query).
-  - Перечисления (Enum).
-  - Объекты-значения (Value Object).
-  - Объекты результатов (Result).
+### restapi
 
-  Эти модели не являются JPA-сущностями. Они представляют собой обычные Java-объекты, инкапсулирующие бизнес-правила.
+- `..RestApi` — mappings, OpenAPI, транспортный контракт.
+- `..Dto` — предпочтительно record + Bean Validation.
+- `..RestController` — mapping, вызов Service, формирование ответа.
+- `..RestExceptionHandler` — конвертация Exception в HTTP response.
+- Контроллеры и обработчики — package-private.
+- Никакой бизнес-логики и транзакций.
 
-- **exceptions/** - пользовательские исключения, специфичные для предметной области модуля.
+### grpchandler
 
-- **entities** - классы JPA-сущностей, аннотированные `@Entity`, которые отображаются на таблицы базы данных. Не должны быть `public`, чтобы предотвратить создание экземпляров извне пакета и обеспечить инкапсуляцию.
+- `..GrpcHandler` — mapping Protobuf в Domain, вызов Service.
+- `..GrpcExceptionHandler` — конвертация Exception в gRPC Status.
+- Минимально необходимая visibility.
+- Никакой бизнес-логики и транзакций.
 
-- **repositories** - интерфейсы репозиториев Spring Data JPA, расширяющие `JpaRepository` или `CrudRepository` и обеспечивающие доступ к данным. Не должны быть `public`.
+### service/integration
 
-- **mappers** - классы или интерфейсы мапперов (например, MapStruct), обеспечивающие преобразование между сущностями, доменными моделями и DTO. Не должны быть `public`.
+- `..IntegrationApi` — технический контракт внешней системы, package-private, если позволяет framework.
+- `..IntegrationService` — адаптация внешнего контракта, mapping, error handling.
+- Использовать IntegrationApi только через IntegrationService.
+- Timeout, retry, idempotency.
+- Не раскрывать внешние транспортные модели за пределами адаптера.
 
-- **services** - классы сервисов, аннотированные `@Service`, отвечающие за:
+### mapper
 
-  - Выполнение бизнес-логики.
-  - Преобразование объектов с использованием мапперов.
-  - Управление транзакциями.
-  - Координацию вызовов репозиториев.
+- Транспортные преобразования.
+- Dto ↔ Domain.
+- Protobuf ↔ Domain.
+- Не обращаться к Entity и Repository.
+- Без бизнес-логики, I/O и side effects.
 
-#### api/
+### configuration / configuration/properties
 
-Слой REST API, содержащий следующие компоненты:
+- Bean definitions, `@Enable*`, инфраструктурные настройки.
+- `@ConfigurationProperties` + validation.
+- Configuration — package-private по умолчанию.
+- Настройки модуля хранить внутри модуля.
+- Не хардкодить параметры окружения и секреты.
+- Без бизнес-логики.
 
-- **controllers** - классы REST-контроллеров, аннотированные `@RestController`, отвечающие за обработку HTTP-запросов, валидацию входных данных и делегирование вызовов сервисам.
+### scheduler
 
-- **DTOs** - объекты передачи данных (Data Transfer Objects), включающие:
+- Обращение из `@Scheduled` метода в Service своего модуля.
+- Cron/interval — в Properties.
+- Учитывать concurrency, distributed locking, idempotency.
 
-  - Request - данные, получаемые от клиентов.
-  - Response - данные, отправляемые клиентам.
+### utils
 
-#### {Module}API.java
+- Stateless технические функции.
+- Без бизнес-логики и зависимостей от компонентов приложения.
+- Не выносить локальные функции в utils без необходимости.
 
-Класс-фасад, представляющий публичный API модуля.
+### shared
 
-Отвечает за:
+- Только действительно общие технические компоненты.
+- Без бизнес-логики отдельных модулей.
+- Без общих бизнес-репозиториев, Entity и Service.
+- Shared не должен зависеть от бизнес-модулей.
+- Не выносить компонент в shared только из-за похожего кода.
 
-- Делегирование вызовов сервисам.
-- Предоставление другим модулям только необходимой функциональности.
-- Сокрытие внутренних деталей реализации модуля.
+## Visibility / Access modifiers
 
-### config/
+Инкапсуляция на уровне Java обязательна.
 
-Глобальные конфигурационные классы, относящиеся ко всему приложению:
+### Правила visibility
 
-- **WebMvcConfig.java** - конфигурация MVC: CORS, перехватчики (interceptors), форматтеры.
-- **SecurityConfig.java** - конфигурация Spring Security для аутентификации и авторизации.
-- **GlobalExceptionHandler.java** - централизованная обработка исключений с использованием `@RestControllerAdvice` для обеспечения единого формата ответов об ошибках.
+| Компонент          | Класс/Interface | Конструктор     | Методы              |
+|--------------------|-----------------|-----------------|---------------------|
+| ModuleApi          | public          | package-private | public / private    |
+| Service            | package-private*| package-private | package-private*    |
+| CrudRepository     | package-private | —               | public (interface)  |
+| JdbcRepository     | package-private | package-private | package-private     |
+| Entity             | package-private | protected (JPA) | minimum necessary   |
+| Internal Domain    | package-private*| minimum necessary| minimum necessary  |
+| Internal Mapper    | package-private | package-private | package-private*    |
+| RestController     | package-private | package-private | package-private*    |
+| RestApi            | public*         | —               | public (interface)  |
+| Dto                | package-private*| minimum necessary| —                  |
+| GrpcHandler        | package-private*| package-private | public*             |
+| IntegrationService | public*         | package-private | public*             |
+| IntegrationApi     | package-private*| —               | public (interface)  |
+| Configuration      | package-private | package-private | package-private*    |
+| ExceptionHandler   | package-private | package-private | package-private*    |
+| Scheduler          | package-private | package-private | package-private*    |
 
-## Модификаторы доступа
+* Расширять visibility только при необходимости межпакетного доступа
+  или согласно требованиям framework.
 
-По умолчанию используй **минимально необходимый уровень доступа**.
+## Владение данными
 
-Открывай только те компоненты, которые действительно необходимы другим модулям или слоям приложения.
+- Каждый модуль владеет своими данными и операциями их изменения.
+- Не изменять данные другого модуля напрямую через SQL/JPA.
+- При одинаковых именах Spring-компонентов учитывать конфликты bean names, JPA entity names и qualifiers.
+- Общие схемы БД не отменяют границы владения данными.
 
-`package-private` означает отсутствие явно указанного модификатора доступа.
+## Межмодульное взаимодействие
 
-### Контроллеры (Controller)
+- Синхронные бизнес-операции — через ModuleApi.
+- Реакция на бизнес-факты — через события при необходимости.
+- События именовать по произошедшему факту:`OrderCreatedModuleEventData`, `PaymentCompletedModuleEventData`.
 
-- Класс: `package-private`.
-- Конструктор: `package-private`.
-- Методы: `package-private`.
+## Spring Modulith / Architecture verification
 
-### Сервисы (Service)
+Обязательно изучить документацию Spring Modulith: https://docs.spring.io/spring-modulith/reference/fundamentals.html
 
-- Класс: `public`.
-- Конструктор: `package-private`.
-- Методы: `public`.
+- Обязательно именовать модули с помощью `@ApplicationModule(...)`
+- Не использовать allowedDependencies у `@ApplicationModule(...)`
 
-### Репозитории (Repository)
+## How-to: добавление новой функциональности в package-by-feature приложение
 
-- Интерфейс: `package-private`.
-
-### Сущности (Entity)
-
-- Класс: `package-private`.
-- Конструктор: `protected`.
-- Методы: `public`.
-
-### DTO и record
-
-- Класс или record: `public` или `package-private`.
-
-### Фасад публичного API модуля (Module API)
-
-- Класс: `public`.
-- Конструктор: `package-private`.
-- Методы: `public`.
-
-### Records запросов и ответов (Request/Response)
-
-- Record: `package-private`.
-
-### Конфигурации и обработчики исключений
-
-- Класс: `package-private`.
-
-## Соглашения об именовании
-
-### Сущности (Entities)
-
-Используй суффикс `Entity`.
-
-Примеры:
-
-- `UserEntity`
-- `AddressEntity`
-
-### Объекты-значения (Value Objects)
-
-Используй название соответствующего доменного понятия. Реализуй в виде `record`.
-
-Примеры:
-
-- `Email`
-- `UserCode`
-- `UserId`
-
-### Команды (Commands)
-
-Используй суффикс `Cmd`.
-
-Примеры:
-
-- `CreateUserCmd`
-- `UpdateAddressCmd`
-
-### Результаты выполнения команд (Command Response)
-
-Используй суффикс `Result`.
-
-Примеры:
-
-- `LoginResult`
-- `RegistrationResult`
-
-### Объекты передачи данных (DTOs)
-
-Используй суффикс `Dto`.
-
-Примеры:
-
-- `UserDto`
-- `AddressDto`
-
-### HTTP-запросы (HTTP Request)
-
-Используй суффикс `Request`.
-
-Примеры:
-
-- `CreateUserRequest`
-- `CreateAddressRequest`
-
-### HTTP-ответы (HTTP Response)
-
-Используй суффикс `Response`.
-
-Примеры:
-
-- `CreateUserResponse`
-- `CreateAddressResponse`
-
-### Репозитории (Repositories)
-
-Используй суффикс `Repository`.
-
-Примеры:
-
-- `UserRepository`
-- `AddressBookRepository`
-
-### Сервисы (Services)
-
-Используй суффикс `Service`.
-
-Примеры:
-
-- `UserService`
-- `AddressBookService`
-
-### Доменные исключения (Domain Exceptions)
-
-Используй суффикс `Exception`.
-
-Примеры:
-
-- `InvalidUserCreationException`
-- `UserCancellationException`
-
-### Публичный API модуля (Module API)
-
-Используй суффикс `API`.
-
-Пример:
-
-- `UsersAPI`
+1. Определить бизнес-модуль — владелец функциональности.
+2. Найти существующие бизнес-операции, Domain-модели и ModuleApi.
+3. Реализовать бизнес-операцию в Service внутри пакета domain.
+4. Добавить Repository, Entity, Domain и Mapper при необходимости.
+5. При взаимодействии с внешней системой использовать IntegrationService + IntegrationApi.
+6. При взаимодействии с другим модулем использовать его ModuleApi или бизнес-события.
+7. При необходимости расширить публичный контракт своего модуля: ModuleApi, ModuleData, ModuleEventData, ModuleException.
+8. Реализовать входной адаптер (REST, gRPC, Scheduler, Batch) и транспортный mapping.
+9. Проверить visibility классов, конструкторов, методов и полей.
+10. Проверить направление зависимостей, владение данными и транзакционные границы.
+11. Добавить релевантные тесты и запустить архитектурную верификацию Spring Modulith.
+12. Если domain содержит более 20 классов — предложить разделение модуля по бизнес-ответственности.

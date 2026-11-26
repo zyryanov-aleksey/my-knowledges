@@ -28,14 +28,14 @@ agent-desc: "
 Как даолжна выглядеть идеальная архитектура:
 
 ```
-├── rest-api/                    # REST-контракт и Dto
+├── restapi/                    # REST-контракт и Dto
 │   ├── dto                      # Dto
 │   │   └── ..Dto.java
-│   ├── rest-controller/         # REST-контроллеры, обработчики ошибок
+│   ├── restcontroller/         # REST-контроллеры, обработчики ошибок
 │   │   ├── ..RestController.java
 │   │   └── ..RestExceptionHandler.java
 │   └── ..RestApi.java           # REST-контракт
-├── grpc-handler/                # gRPC-контроллеры/хендлеры, обработчики ошибок
+├── grpchandler/                # gRPC-контроллеры/хендлеры, обработчики ошибок
 │   ├── ..GrpcHandler.java
 │   └── ..GrpcExceptionHandler.java
 ├── service/                     # сервисы с бизнес-логикой (бизнес операции, валидации, оркестрации, и т.п.)
