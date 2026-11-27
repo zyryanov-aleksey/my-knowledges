@@ -35,8 +35,8 @@ Spring Modulith / Modular Monolith;)
 ```
 ├── order/
 │   ├── package-info.java
-│   ├── OrderModuleApi.java                     # Публичный контракт модуля
-│   ├── OrderModuleData.java              # Публичная модель данных
+│   ├── OrderModuleApi.java                     # Публичный контракт модуля (либо синхронный метод, либо асинхронный listener)
+│   ├── OrderModuleData.java                    # Публичная модель данных
 │   ├── OrderRequstModuleData.java              # Публичная модель запроса
 │   ├── OrderResponseModuleData.java            # Публичная модель ответа
 │   ├── OrderModuleEventData.java               # Публичное бизнес-событие

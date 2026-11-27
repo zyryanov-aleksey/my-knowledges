@@ -28,43 +28,43 @@ agent-desc: "
 Как даолжна выглядеть идеальная архитектура:
 
 ```
-├── restapi/                    # REST-контракт и Dto
-│   ├── dto                      # Dto
+├── rest/                           # REST-контракт и Dto
+│   ├── dto                         # Dto
 │   │   └── ..Dto.java
-│   ├── restcontroller/         # REST-контроллеры, обработчики ошибок
+│   ├── restcontroller/             # REST-контроллеры, обработчики ошибок
 │   │   ├── ..RestController.java
 │   │   └── ..RestExceptionHandler.java
-│   └── ..RestApi.java           # REST-контракт
-├── grpchandler/                # gRPC-контроллеры/хендлеры, обработчики ошибок
+│   └── ..RestApi.java              # REST-контракт
+├── grpc/                           # gRPC-контроллеры/хендлеры, обработчики ошибок
 │   ├── ..GrpcHandler.java
 │   └── ..GrpcExceptionHandler.java
-├── service/                     # сервисы с бизнес-логикой (бизнес операции, валидации, оркестрации, и т.п.)
-│   ├── integration/             # интеграционные сервисы
+├── service/                        # сервисы с бизнес-логикой (бизнес операции, валидации, оркестрации, и т.п.)
+│   ├── integration/                # интеграционные сервисы
 │   │   ├── ..IntegrationService.java
 │   │   └── ..IntegrationApi.java
 │   └── ..Service.java
-├── repository/                  # Доступ к БД, репозитории
+├── repository/                     # Доступ к БД, репозитории
 │   ├── ..JdbcRepository.java
 │   └── ..CrudRepository.java 
 ├── data/
-│   ├── domain/                  # Внутренняя модель
+│   ├── domain/                     # Внутренняя модель
 │   │   └── ..Domain.java    
-│   ├── entity/                  # Модель хранения
+│   ├── entity/                     # Модель хранения
 │   │   └── ..Entity.java 
-│   └── const/                   # Константы, енамы
+│   └── const/                      # Константы, енамы
 │       └── ..Enum.java
-├── mapper/                      # Преобразования Dto, protobuf и внутренних моделей
+├── mapper/                         # Преобразования Dto, protobuf и внутренних моделей
 │   └── ..Mapper.java
-├── configuration/               # Spring-конфигурация и настройки
-│   ├── properties/              # настройки переменных окружения
+├── configuration/                  # Spring-конфигурация и настройки
+│   ├── properties/                 # настройки переменных окружения
 │   │   └── ..Properties.java    
 │   └── ..Configuration.java     
-├── scheduler/                   # Запуск задач по расписанию
+├── scheduler/                      # Запуск задач по расписанию
 │   └── ..Scheduler.java
-├── batch/                       # Задачи Spring Batch
-├── exception/                   # Исключения приложения
+├── batch/                          # Задачи Spring Batch
+├── exception/                      # Исключения приложения
 │   └── ..Exception.java
-├── utils/                       # Вспомогательные функции
+├── utils/                          # Вспомогательные функции
 │   └── ..Util.java
 └── ..Application.java
 ```
@@ -90,7 +90,7 @@ Batch ───────────┘              └──> IntegrationSe
 - `@SpringBootApplication` в корне приложения.
 - Дополнительные `@Enable*` и настройки - в Configuration.
 
-### rest-api
+### rest
 
 - `..RestApi` - mappings, OpenAPI, транспортный контракт.
 - `..Dto` - предпочтительно record + Bean Validation.
@@ -98,7 +98,7 @@ Batch ───────────┘              └──> IntegrationSe
 - `..RestExceptionHandler` - конвертация Exception в HTTP response.
 - Никакой бизнес-логики и транзакций.
 
-### grpc-handler
+### grpc
 
 - `..GrpcHandler` - mapping Protobuf в Domain, транспортный контракт, вызов Service
 - `..GrpcExceptionHandler` - конвертация Exception в gRPC Status.
